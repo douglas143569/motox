@@ -1,0 +1,9 @@
+{
+  "appId": "br.com.motox.entregador",
+  "appName": "MotoX Entregador",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "http",
+    "cleartext": true
+  }
+}

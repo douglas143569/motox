@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f1115">
+  <link rel="icon" href="/icone.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <title>MotoX · Enviar</title>
+  <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <div class="app">
+    <div id="mapa"></div>
+    <div class="topo">
+      <div class="chip-topo"><span class="logo">Moto<b>X</b></span></div>
+      <div class="cresce"></div>
+      <button class="btn-icone" id="btn-historico" title="Minhas entregas" aria-label="Minhas entregas">🧾</button>
+      <button class="btn-icone" id="btn-sair" title="Sair" aria-label="Sair">↩</button>
+    </div>
+    <section class="painel" id="painel"></section>
+  </div>
+
+  <div class="sobreposicao oculto" id="modal-historico">
+    <div class="oferta" style="max-height:80dvh;overflow:auto">
+      <div class="linha entre"><h2 style="margin:0">Minhas entregas</h2><button class="btn peq contorno" data-fechar>Fechar</button></div>
+      <ul class="lista-hist" id="lista-historico"></ul>
+    </div>
+  </div>
+
+  <script src="/vendor/leaflet/leaflet.js"></script>
+  <script src="/vendor/socket.io.min.js"></script>
+  <script src="/js/config.js"></script>
+  <script src="/js/comum.js"></script>
+  <script src="/js/cliente.js"></script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+node_modules/
+dados/
+apps/*/www/
+apps/*/android/app/build/
+apps/*/android/.gradle/
+dist/
+build/

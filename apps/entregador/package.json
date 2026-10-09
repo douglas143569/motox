@@ -1,0 +1,13 @@
+{
+  "name": "motox-app-entregador",
+  "private": true,
+  "description": "App MotoX Entregador (motoboy) - gerado a partir de public/",
+  "dependencies": {
+    "@capacitor/core": "^8.5.3",
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/ios": "^8.5.3",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor-community/background-geolocation": "^1.2.26",
+    "@capacitor/local-notifications": "^8.3.1"
+  }
+}

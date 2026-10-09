@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f1115">
+  <link rel="icon" href="/icone.svg">
+  <title>MotoX · Rastreio da entrega</title>
+  <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <div class="app">
+    <div id="mapa"></div>
+    <div class="topo"><div class="chip-topo"><span class="logo">Moto<b>X</b></span><span class="suave peq">Rastreio</span></div></div>
+    <section class="painel" id="painel"><p class="suave">Carregando…</p></section>
+  </div>
+
+  <script src="/vendor/leaflet/leaflet.js"></script>
+  <script src="/vendor/socket.io.min.js"></script>
+  <script src="/js/config.js"></script>
+  <script src="/js/comum.js"></script>
+  <script>
+    const codigo = new URLSearchParams(location.search).get('c');
+    const mapa = criarMapa('mapa');
+    const painel = $('#painel');
+    const camadas = {};
+    let corrida = null;
+    let enquadrado = false;
+
+    function desenhar(c) {
+      corrida = c;
+      for (const k of ['origem', 'destino']) {
+        camadas[k]?.remove();
+        camadas[k] = L.marker([c[k].lat, c[k].lng], { icon: ICONES[k]() }).addTo(mapa);
+      }
+      if (!camadas.rota && c.rota) camadas.rota = L.polyline(c.rota, { color: '#141414', weight: 5, opacity: 0.8 }).addTo(mapa);
+      if (c.motoboy?.posicao) moverMoto(c.motoboy.posicao);
+      if (!enquadrado) {
+        enquadrado = true;
+        const desktop = innerWidth >= 900;
+        mapa.fitBounds(L.latLngBounds([camadas.origem.getLatLng(), camadas.destino.getLatLng()]), {
+          paddingTopLeft: desktop ? [440, 40] : [30, 80],
+          paddingBottomRight: desktop ? [40, 40] : [30, innerHeight * 0.45],
+        });
+      }
+
+      const m = c.motoboy;
+      const titulo = {
+        procurando: 'Estamos chamando um motoboy',
+        a_caminho_coleta: 'O motoboy está indo buscar seu pacote',
+        no_local_coleta: 'O motoboy está retirando seu pacote',
+        em_rota: 'Seu pacote está a caminho! 🛵',
+        retornando: 'Pacote entregue ✅',
+        entregue: 'Pacote entregue ✅',
+        cancelada: 'Esta entrega foi cancelada',
+        expirada: 'Esta entrega não foi realizada',
+      }[c.status];
+      painel.innerHTML = `
+        <h2 style="margin-bottom:2px">${esc(titulo)}</h2>
+        <p class="suave" id="eta" style="margin:0 0 8px"></p>
+        ${m ? `<div class="cartao motoboy-card">
+            <div class="avatar">${esc(iniciais(m.nome))}</div>
+            <div class="cresce"><b>${esc(m.nome)}</b><div class="suave peq">${esc(m.moto || '')} · ${notaTexto(m.nota)}</div></div>
+            <span class="placa">${esc(m.placa || '')}</span>
+          </div>` : ''}
+        ${c.status === 'em_rota' ? '<div class="cartao peq">🔐 Quando receber o pacote, informe ao motoboy o <b>código de entrega</b> que o remetente te enviou.</div>' : ''}
+        ${['cancelada', 'expirada'].includes(c.status) ? '' : etapasHtml(c)}
+        <div class="cartao"><small class="suave">Entrega em</small><div>${esc(c.destino.endereco)}</div></div>`;
+      atualizarEta();
+    }
+
+    function moverMoto(p) {
+      if (!camadas.moto) camadas.moto = L.marker([p.lat, p.lng], { icon: ICONES.moto(), zIndexOffset: 1000 }).addTo(mapa);
+      else animarMarcador(camadas.moto, [p.lat, p.lng]);
+      if (corrida?.motoboy) corrida.motoboy.posicao = p;
+      atualizarEta();
+    }
+
+    function atualizarEta() {
+      const p = corrida?.motoboy?.posicao;
+      const el = $('#eta');
+      if (!p || !el) return;
+      if (corrida.status === 'em_rota') el.textContent = `Chega em ~${etaMin(p, corrida.destino)} min`;
+      else if (corrida.status === 'a_caminho_coleta') el.textContent = `Coleta em ~${etaMin(p, corrida.origem)} min`;
+    }
+
+    if (!codigo) {
+      painel.innerHTML = '<h2>Link inválido</h2><p class="suave">Peça ao remetente o link de rastreio novamente.</p>';
+    } else {
+      const sock = io();
+      const entrar = () =>
+        sock.emit('rastrear', codigo, (r) => {
+          if (r.erro) painel.innerHTML = `<h2>Ops</h2><p class="suave">${esc(r.erro)}</p>`;
+          else desenhar(r.corrida);
+        });
+      sock.on('connect', entrar); // entra de novo na sala após reconexões
+      sock.on('corrida', desenhar);
+      sock.on('local', (d) => corrida && d.corridaId === corrida.id && moverMoto(d));
+    }
+  </script>
+</body>
+</html>

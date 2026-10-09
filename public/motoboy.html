@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f1115">
+  <link rel="icon" href="/icone.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <title>MotoX · Motoboy</title>
+  <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <div class="app">
+    <div id="mapa"></div>
+    <div class="topo">
+      <div class="chip-topo" id="chip-status"><span class="ponto" id="ponto-status" style="background:var(--suave)"></span><span id="texto-status">Offline</span></div>
+      <div class="chip-topo" id="chip-ganhos">Hoje <b id="ganho-hoje">R$ 0,00</b></div>
+      <div class="cresce"></div>
+      <button class="btn-icone" id="btn-sair" title="Sair" aria-label="Sair">↩</button>
+    </div>
+    <section class="painel" id="painel"></section>
+  </div>
+
+  <div class="sobreposicao oculto" id="modal-oferta"><div class="oferta" id="oferta"></div></div>
+
+  <script src="/vendor/leaflet/leaflet.js"></script>
+  <script src="/vendor/socket.io.min.js"></script>
+  <script src="/js/config.js"></script>
+  <script src="/vendor/capacitor.js"></script>
+  <script src="/js/nativo.js"></script>
+  <script src="/js/documentos.js"></script>
+  <script src="/js/comum.js"></script>
+  <script src="/js/motoboy.js"></script>
+</body>
+</html>

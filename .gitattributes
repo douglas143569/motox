@@ -1,0 +1,9 @@
+# Quebras de linha padronizadas (LF) no repositório, para funcionar em Windows, Mac e Linux.
+# Sem isto, o gradlew dos apps Android quebra fora do Windows.
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.png binary
+*.jpg binary
+*.ico binary
+*.jar binary

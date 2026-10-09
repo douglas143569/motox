@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f1115">
+  <link rel="icon" href="/icone.svg">
+  <title>MotoX · Painel</title>
+  <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="/css/app.css">
+  <style>
+    .adm { max-width: 1200px; margin: 0 auto; padding: calc(16px + var(--topo-seguro)) 16px 40px; }
+    .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 14px 0; }
+    .kpi { background: var(--painel); border-radius: 14px; padding: 14px; }
+    .kpi small { color: var(--suave); }
+    .kpi b { display: block; font-size: 1.5rem; margin-top: 2px; }
+    .grade { display: grid; gap: 14px; grid-template-columns: 1fr; }
+    @media (min-width: 900px) { .grade { grid-template-columns: 1.1fr 1fr; } }
+    #mapa-adm { height: 360px; border-radius: 16px; overflow: hidden; }
+    .bloco-adm { background: var(--painel); border-radius: 16px; padding: 14px; }
+    .tabela { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    .tabela td { padding: 10px 6px; border-bottom: 1px solid var(--borda); vertical-align: top; }
+    .rolagem { overflow-x: auto; max-height: 520px; overflow-y: auto; }
+    .abas-adm { max-width: 640px; margin: 16px 0 4px; grid-template-columns: repeat(4, 1fr); }
+    .abas-adm button { padding: 12px 4px; font-size: 0.9rem; }
+    .filtros { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
+    .filtros .opcao { padding: 8px 14px; border-radius: 999px; font-weight: 600; }
+    .contas { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+    @media (min-width: 900px) { .contas { grid-template-columns: 1fr 1fr; } }
+    .conta { background: var(--painel); border-radius: 16px; padding: 14px; }
+    .conta.bloqueada { opacity: 0.75; border: 1px dashed #4b1f22; }
+    .conta .avatar { width: 44px; height: 44px; font-size: 1rem; }
+    .conta .detalhes { color: var(--suave); font-size: 0.85rem; margin-top: 2px; }
+    .conta .acoes { display: flex; gap: 8px; margin-top: 12px; }
+    .conta .acoes .btn { flex: 1; }
+    .bloco-adm h3 { margin-top: 0; }
+    .grade-tarifas { display: grid; gap: 14px; margin-top: 14px; }
+    @media (min-width: 900px) { .grade-tarifas { grid-template-columns: 1fr 1fr; } }
+    .grade-campos { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0 10px; }
+    .grade-campos .campo small { display: block; margin-top: 4px; }
+    .faixa { border: 1px solid var(--borda); border-radius: 14px; padding: 12px; margin-bottom: 10px; }
+    .dias { display: flex; gap: 6px; margin: 10px 0; flex-wrap: wrap; }
+    .dias button {
+      width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--borda);
+      background: var(--painel-2); cursor: pointer; font-weight: 700;
+    }
+    .dias button.sel { background: var(--marca); color: var(--tinta-marca); border-color: var(--marca); }
+    .rodape-adm {
+      position: sticky; bottom: 0; z-index: 5; display: flex; gap: 8px; flex-wrap: wrap;
+      margin-top: 14px; padding: 12px 0 calc(12px + var(--base-segura)); background: var(--fundo);
+    }
+  </style>
+</head>
+<body>
+  <main class="adm">
+    <div class="linha entre">
+      <div class="logo" style="font-size:1.6rem">Moto<b>X</b> <span class="suave peq">painel</span></div>
+      <button class="btn contorno peq" id="btn-sair">Sair</button>
+    </div>
+
+    <div class="abas abas-adm" role="tablist">
+      <button class="sel" data-aba="geral" role="tab">Geral</button>
+      <button data-aba="contas" role="tab">Contas</button>
+      <button data-aba="tarifas" role="tab">Tarifas</button>
+      <button data-aba="promocoes" role="tab">Promoções</button>
+    </div>
+
+    <section id="aba-geral">
+      <div class="kpis" id="kpis"></div>
+      <div class="grade">
+        <div class="bloco-adm"><h3 style="margin-top:0">Motoboys online <span id="qtd-online" class="selo ok"></span></h3><div id="mapa-adm"></div></div>
+        <div class="bloco-adm"><h3 style="margin-top:0">Últimas corridas</h3><div class="rolagem"><table class="tabela" id="tabela"></table></div></div>
+      </div>
+    </section>
+
+    <section id="aba-tarifas" class="oculto"></section>
+    <section id="aba-promocoes" class="oculto"></section>
+
+    <section id="aba-contas" class="oculto">
+      <input class="input" id="busca-contas" type="search" placeholder="Buscar por nome, telefone ou placa" style="margin-top:12px">
+      <div class="filtros" id="filtros">
+        <button class="opcao sel" data-filtro="todos">Todos</button>
+        <button class="opcao" data-filtro="cliente">Clientes</button>
+        <button class="opcao" data-filtro="motoboy">Motoboys</button>
+        <button class="opcao" data-filtro="bloqueados">Bloqueados</button>
+        <button class="opcao" data-filtro="analise">Em análise <span class="selo alerta oculto" id="qtd-analise"></span></button>
+      </div>
+      <p class="suave peq" id="contagem-contas"></p>
+      <ul class="contas" id="lista-contas"></ul>
+    </section>
+  </main>
+
+  <div class="sobreposicao oculto" id="modal-excluir">
+    <div class="oferta" id="conteudo-excluir"></div>
+  </div>
+
+  <script src="/vendor/leaflet/leaflet.js"></script>
+  <script src="/vendor/socket.io.min.js"></script>
+  <script src="/js/config.js"></script>
+  <script src="/js/comum.js"></script>
+  <script src="/js/admin-precos.js"></script>
+  <script src="/js/admin-cadastros.js"></script>
+  <script>
+    exigirLogin('admin');
+    const mapa = criarMapa('mapa-adm');
+    const marcadores = new Map();
+    let primeiraVez = true;
+
+    async function carregar() {
+      let r;
+      try {
+        r = await api('/admin/resumo');
+      } catch (e) {
+        return toast(e.message, 'erro');
+      }
+      const h = r.hoje;
+      $('#qtd-analise').textContent = r.cadastrosPendentes;
+      $('#qtd-analise').classList.toggle('oculto', !r.cadastrosPendentes);
+      $('#kpis').innerHTML = [
+        ['Pedidos hoje', h.pedidos],
+        ['Entregues hoje', h.entregues || 0],
+        ['Em andamento', r.andamento],
+        ['Perdidas hoje', h.perdidas || 0],
+        ['Faturamento hoje', brl(h.faturamento)],
+        ['Receita MotoX', brl(h.receita)],
+        ['Descontos hoje', brl(h.descontos)],
+        ['Cadastros em análise', r.cadastrosPendentes ? `<span style="color:var(--marca)">${r.cadastrosPendentes}</span>` : 0],
+        ['Tarifa agora', r.dinamica.mult > 1 ? `+${Math.round((r.dinamica.mult - 1) * 100)}% · ${esc(r.dinamica.motivos.join(' + '))}` : 'Normal'],
+        ['Clientes', r.usuarios.cliente || 0],
+        ['Motoboys', r.usuarios.motoboy || 0],
+      ].map(([t, v]) => `<div class="kpi"><small>${t}</small><b>${v}</b></div>`).join('');
+
+      $('#qtd-online').textContent = r.online.length;
+      const vistos = new Set();
+      for (const m of r.online) {
+        vistos.add(m.id);
+        if (!marcadores.has(m.id)) {
+          marcadores.set(m.id, L.marker([m.lat, m.lng], { icon: ICONES.moto() }).addTo(mapa).bindTooltip(m.nome || ''));
+        } else marcadores.get(m.id).setLatLng([m.lat, m.lng]);
+      }
+      for (const [id, mk] of marcadores) if (!vistos.has(id)) (mk.remove(), marcadores.delete(id));
+      if (primeiraVez && r.online.length) {
+        primeiraVez = false;
+        mapa.fitBounds(L.latLngBounds(r.online.map((m) => [m.lat, m.lng])), { maxZoom: 14, padding: [30, 30] });
+      }
+
+      $('#tabela').innerHTML = r.corridas.length
+        ? r.corridas.map((c) => `<tr>
+            <td>#${c.id}<br><small class="suave">${dataHora(c.criadoEm)}</small></td>
+            <td>${esc(c.cliente.nome)}<br><small class="suave">${c.motoboy ? '🛵 ' + esc(c.motoboy.nome) : '—'}</small></td>
+            <td>${seloStatus(c.status)}<br><small class="suave">${km(c.distanciaKm)}</small></td>
+            <td style="text-align:right"><b>${brl(c.preco)}</b><br><small class="suave">taxa ${brl(c.taxaPlataforma)}</small></td>
+          </tr>`).join('')
+        : '<tr><td class="suave">Nenhuma corrida ainda.</td></tr>';
+    }
+
+    const sock = conectarSocket();
+    let agendado = null;
+    sock.on('corrida', () => {
+      clearTimeout(agendado);
+      agendado = setTimeout(carregar, 300);
+    });
+    sock.on('cadastro:pendente', (d) => {
+      toast(d && d.reenvio ? 'Um motoboy reenviou documentos para análise.' : 'Novo cadastro de motoboy aguardando análise.');
+      carregar();
+      if (!$('#aba-contas').classList.contains('oculto')) carregarContas();
+    });
+    $('#btn-sair').addEventListener('click', () => Sessao.sair());
+    carregar();
+    setInterval(carregar, 5000);
+
+    // ---------- abas ----------
+
+    for (const b of $$('.abas-adm button')) {
+      b.addEventListener('click', () => {
+        for (const x of $$('.abas-adm button')) x.classList.toggle('sel', x === b);
+        for (const sec of $$('main.adm > section')) sec.classList.toggle('oculto', sec.id !== `aba-${b.dataset.aba}`);
+        if (b.dataset.aba === 'contas') carregarContas();
+        if (b.dataset.aba === 'tarifas') abrirTarifas();
+        if (b.dataset.aba === 'promocoes') abrirPromocoes();
+        if (b.dataset.aba === 'geral') mapa.invalidateSize(); // o mapa precisa recalcular o tamanho ao reaparecer
+      });
+    }
+
+    // ---------- contas ----------
+
+    let filtro = 'todos';
+    let contas = [];
+    const TIPO = { cliente: ['Cliente', 'info'], motoboy: ['Motoboy', 'alerta'], admin: ['Admin', ''] };
+
+    let seqContas = 0;
+    async function carregarContas() {
+      const q = $('#busca-contas').value.trim();
+      const tipo = ['cliente', 'motoboy'].includes(filtro) ? filtro : '';
+      const meu = ++seqContas;
+      let resposta;
+      try {
+        const extra = filtro === 'analise' ? '&cadastro=pendente' : '';
+        resposta = await api(`/admin/usuarios?tipo=${filtro === 'analise' ? 'motoboy' : tipo}&q=${encodeURIComponent(q)}${extra}`);
+      } catch (e) {
+        return toast(e.message, 'erro');
+      }
+      if (meu !== seqContas) return; // chegou uma busca mais nova enquanto esta carregava
+      contas = resposta;
+      if (filtro === 'bloqueados') contas = contas.filter((u) => u.bloqueado);
+      $('#contagem-contas').textContent = `${contas.length} conta${contas.length === 1 ? '' : 's'}`;
+      $('#lista-contas').innerHTML = contas.length
+        ? contas.map(cartaoConta).join('')
+        : '<li class="suave">Nenhuma conta encontrada.</li>';
+    }
+
+    function cartaoConta(u) {
+      const [tipoNome, tipoCor] = TIPO[u.tipo];
+      const detalhes = [
+        formatarTel(u.telefone),
+        u.tipo === 'motoboy' ? `${esc(u.moto || '')} · ${esc(u.placa || '')}` : '',
+        notaTexto(u.nota),
+        `${u.totalCorridas} corrida${u.totalCorridas === 1 ? '' : 's'}`,
+        `desde ${new Date(u.criadoEm).toLocaleDateString('pt-BR')}`,
+      ].filter(Boolean);
+      return `<li class="conta ${u.bloqueado ? 'bloqueada' : ''}">
+        <div class="linha" style="align-items:flex-start">
+          <div class="avatar">${esc(iniciais(u.nome))}</div>
+          <div class="cresce">
+            <div class="linha" style="flex-wrap:wrap;gap:6px">
+              <b>${esc(u.nome)}</b>
+              <span class="selo ${tipoCor}">${tipoNome}</span>
+              ${u.bloqueado ? '<span class="selo perigo">Bloqueada</span>' : ''}
+              ${u.online ? '<span class="selo ok">Online</span>' : ''}
+              ${u.tipo === 'motoboy' ? seloCadastro(u.statusCadastro) : ''}
+            </div>
+            <div class="detalhes">${detalhes.join(' · ')}</div>
+          </div>
+        </div>
+        ${u.tipo === 'admin' ? '' : `<div class="acoes">
+          ${u.tipo === 'motoboy' ? `<button class="btn ${u.statusCadastro === 'pendente' ? 'primario' : 'contorno'} peq" data-docs="${u.id}">${u.statusCadastro === 'pendente' ? 'Analisar' : 'Documentos'}</button>` : ''}
+          <button class="btn contorno peq" data-bloquear="${u.id}">${u.bloqueado ? 'Desbloquear' : 'Bloquear'}</button>
+          <button class="btn perigo peq" data-excluir="${u.id}">Excluir</button>
+        </div>`}
+      </li>`;
+    }
+
+    $('#lista-contas').addEventListener('click', (e) => {
+      const bloq = e.target.closest('[data-bloquear]');
+      const excl = e.target.closest('[data-excluir]');
+      if (bloq) {
+        const u = contas.find((x) => x.id === Number(bloq.dataset.bloquear));
+        const bloquear = !u.bloqueado;
+        if (bloquear && !confirm(`Bloquear ${u.nome}? A pessoa será desconectada e não conseguirá entrar até ser desbloqueada.`)) return;
+        acao(bloq, async () => {
+          await api(`/admin/usuarios/${u.id}/bloquear`, { metodo: 'POST', corpo: { bloqueado: bloquear } });
+          toast(bloquear ? 'Conta bloqueada.' : 'Conta desbloqueada.', 'ok');
+          carregarContas();
+        });
+      }
+      if (excl) abrirExclusao(contas.find((x) => x.id === Number(excl.dataset.excluir)));
+      const docs = e.target.closest('[data-docs]');
+      if (docs) abrirAnalise(contas.find((x) => x.id === Number(docs.dataset.docs)));
+    });
+
+    function abrirExclusao(u) {
+      $('#conteudo-excluir').innerHTML = `
+        <h2 style="margin-top:0">Excluir conta?</h2>
+        <div class="cartao"><b>${esc(u.nome)}</b><div class="suave peq">${TIPO[u.tipo][0]} · ${formatarTel(u.telefone)}</div></div>
+        <p class="peq">${u.totalCorridas
+          ? `Esta conta tem <b>${u.totalCorridas} corrida(s)</b> no histórico. Nome, telefone, placa e senha serão apagados;
+             as corridas continuam no relatório financeiro como “Conta excluída”.`
+          : 'Esta conta não tem corridas e será apagada por completo.'}
+          O telefone fica livre para um novo cadastro. <b>Não dá para desfazer.</b></p>
+        <label class="campo"><span>Para confirmar, digite <b>EXCLUIR</b></span>
+          <input class="input" id="confirma-excluir" autocomplete="off" autocapitalize="characters"></label>
+        <div class="linha">
+          <button class="btn contorno cresce" id="btn-cancelar-excluir">Voltar</button>
+          <button class="btn perigo cresce" id="btn-confirmar-excluir" disabled>Excluir conta</button>
+        </div>`;
+      $('#modal-excluir').classList.remove('oculto');
+      const fechar = () => $('#modal-excluir').classList.add('oculto');
+      $('#confirma-excluir').addEventListener('input', (e) => {
+        $('#btn-confirmar-excluir').disabled = e.target.value.trim().toUpperCase() !== 'EXCLUIR';
+      });
+      $('#btn-cancelar-excluir').addEventListener('click', fechar);
+      $('#btn-confirmar-excluir').addEventListener('click', (e) =>
+        acao(e.currentTarget, async () => {
+          await api(`/admin/usuarios/${u.id}`, { metodo: 'DELETE' });
+          fechar();
+          toast('Conta excluída.', 'ok');
+          carregarContas();
+          carregar();
+        })
+      );
+      $('#confirma-excluir').focus();
+    }
+
+    let timerBusca = null;
+    $('#busca-contas').addEventListener('input', () => {
+      clearTimeout(timerBusca);
+      timerBusca = setTimeout(carregarContas, 300);
+    });
+    for (const b of $$('#filtros .opcao')) {
+      b.addEventListener('click', () => {
+        filtro = b.dataset.filtro;
+        for (const x of $$('#filtros .opcao')) x.classList.toggle('sel', x === b);
+        carregarContas();
+      });
+    }
+  </script>
+</body>
+</html>

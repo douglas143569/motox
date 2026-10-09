@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f1115">
+  <link rel="icon" href="/icone.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <title>MotoX · Entregas por motoboy</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <main class="pagina">
+    <div class="hero">
+      <div class="logo">Moto<b>X</b></div>
+      <p class="suave">Seu motoboy em minutos. Preço na hora, rastreio ao vivo.</p>
+    </div>
+
+    <div class="abas" role="tablist">
+      <button class="sel" data-aba="entrar" role="tab">Entrar</button>
+      <button data-aba="cadastrar" role="tab">Criar conta</button>
+    </div>
+
+    <form id="form-entrar">
+      <label class="campo"><span>Celular</span>
+        <input class="input" name="telefone" type="tel" inputmode="tel" autocomplete="tel" placeholder="(11) 91234-5678" required></label>
+      <label class="campo"><span>Senha</span>
+        <input class="input" name="senha" type="password" autocomplete="current-password" required></label>
+      <button class="btn primario bloco" type="submit">Entrar</button>
+    </form>
+
+    <form id="form-cadastrar" class="oculto">
+      <div class="perfis">
+        <button type="button" class="opcao sel" data-tipo="cliente"><span class="emoji">📦</span><b>Quero enviar</b><small>Pessoas e empresas</small></button>
+        <button type="button" class="opcao" data-tipo="motoboy"><span class="emoji">🛵</span><b>Sou motoboy</b><small>Ganhe fazendo entregas</small></button>
+      </div>
+      <label class="campo"><span>Nome completo</span>
+        <input class="input" name="nome" autocomplete="name" required></label>
+      <label class="campo"><span>Celular (WhatsApp)</span>
+        <input class="input" name="telefone" type="tel" inputmode="tel" autocomplete="tel" placeholder="(11) 91234-5678" required></label>
+      <div id="campos-motoboy" class="oculto">
+        <label class="campo"><span>Modelo da moto</span>
+          <input class="input" name="moto" placeholder="Ex.: Honda CG 160"></label>
+        <label class="campo"><span>Placa</span>
+          <input class="input" name="placa" placeholder="ABC1D23" style="text-transform:uppercase" maxlength="8"></label>
+        <h3 style="margin:18px 0 8px">Documentos obrigatórios</h3>
+        <div id="docs-cadastro"></div>
+        <p class="suave peq" style="margin-top:0">🔒 Usados só para verificar seu cadastro e vistos apenas pela equipe MotoX.
+          Depois da análise (normalmente em até 24h) você já pode ficar online.</p>
+      </div>
+      <label class="campo"><span>Senha (mín. 6 caracteres)</span>
+        <input class="input" name="senha" type="password" autocomplete="new-password" minlength="6" required></label>
+      <button class="btn primario bloco" type="submit">Criar conta</button>
+    </form>
+
+    <p class="centro peq suave" style="margin-top:28px">
+      Recebeu um link de rastreio? Ele abre direto, sem precisar de conta.
+    </p>
+  </main>
+
+  <script src="/js/config.js"></script>
+  <script src="/js/comum.js"></script>
+  <script src="/js/documentos.js"></script>
+  <script>
+    if (Sessao.token && Sessao.usuario) {
+      window.redirecionando = true; // o aviso pendente (se houver) aparece na próxima página
+      location.replace(PAGINA_DO_TIPO[Sessao.usuario.tipo] || '/index.html');
+    }
+    // alguém entrou em outra aba deste navegador: esta aba acompanha a conta que está valendo
+    window.addEventListener('storage', (e) => {
+      if (e.key !== 'motox_usuario' || !e.newValue || !Sessao.token) return;
+      sessionStorage.setItem(
+        'motox_aviso',
+        'Você entrou com outra conta em outra aba deste navegador. ' +
+          'Para usar cliente e motoboy ao mesmo tempo, use navegadores diferentes ou uma janela anônima.'
+      );
+      location.replace(PAGINA_DO_TIPO[Sessao.usuario.tipo] || '/index.html');
+    });
+
+    // Nos apps de loja cada um atende um só perfil (cliente ou entregador); na web, todos.
+    const TIPO_DO_APP = { cliente: 'cliente', entregador: 'motoboy' }[MOTOX.app];
+    let tipo = TIPO_DO_APP || 'cliente';
+    if (TIPO_DO_APP) {
+      $('.perfis').classList.add('oculto');
+      $('#campos-motoboy').classList.toggle('oculto', tipo !== 'motoboy');
+      $('.pagina > p.centro').classList.add('oculto');
+      if (tipo === 'motoboy') {
+        $('.hero').innerHTML = '<div class="logo">Moto<b>X</b></div><p class="suave">Entregador · Ganhe fazendo entregas, veja o valor antes de aceitar.</p>';
+      }
+    }
+
+    const docsCadastro = {};
+    $('#docs-cadastro').innerHTML = campoDocumento('cnh') + campoDocumento('crlv');
+    ativarCamposDocumento($('#docs-cadastro'), docsCadastro);
+
+    const mascaraTel = (e) => {
+      const d = e.target.value.replace(/\D/g, '').slice(0, 11);
+      e.target.value = d.length >= 10 ? formatarTel(d) : d.length > 2 ? `(${d.slice(0, 2)}) ${d.slice(2)}` : d;
+    };
+    $$('input[type=tel]').forEach((i) => i.addEventListener('input', mascaraTel));
+
+    $$('.abas button').forEach((b) =>
+      b.addEventListener('click', () => {
+        $$('.abas button').forEach((x) => x.classList.toggle('sel', x === b));
+        $('#form-entrar').classList.toggle('oculto', b.dataset.aba !== 'entrar');
+        $('#form-cadastrar').classList.toggle('oculto', b.dataset.aba !== 'cadastrar');
+      })
+    );
+
+    $$('.perfis .opcao').forEach((b) =>
+      b.addEventListener('click', () => {
+        tipo = b.dataset.tipo;
+        $$('.perfis .opcao').forEach((x) => x.classList.toggle('sel', x === b));
+        $('#campos-motoboy').classList.toggle('oculto', tipo !== 'motoboy');
+      })
+    );
+
+    const entrarCom = (r) => {
+      if (TIPO_DO_APP && r.usuario.tipo !== TIPO_DO_APP) {
+        fetch(MOTOX.servidor + '/api/auth/sair', { method: 'POST', headers: { Authorization: 'Bearer ' + r.token } });
+        throw new Error(
+          r.usuario.tipo === 'motoboy'
+            ? 'Esta é uma conta de entregador. Use o app MotoX Entregador.'
+            : r.usuario.tipo === 'cliente'
+              ? 'Esta é uma conta de cliente. Use o app MotoX.'
+              : 'O painel administrativo é acessado pelo navegador.'
+        );
+      }
+      Sessao.salvar(r);
+      location.href = PAGINA_DO_TIPO[r.usuario.tipo];
+    };
+
+    $('#form-entrar').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const f = Object.fromEntries(new FormData(e.target));
+      acao(e.submitter, async () => entrarCom(await api('/auth/login', { metodo: 'POST', corpo: f })));
+    });
+
+    $('#form-cadastrar').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const f = Object.fromEntries(new FormData(e.target));
+      const corpo = { ...f, tipo };
+      if (tipo === 'motoboy') {
+        const faltando = ['cnh', 'crlv'].filter((t) => !docsCadastro[t]);
+        if (faltando.length) {
+          toast(`Anexe ${faltando.map((t) => (t === 'cnh' ? 'a CNH' : 'o documento da moto (CRLV)')).join(' e ')} para continuar.`, 'erro');
+          $(`.doc[data-doc="${faltando[0]}"]`).scrollIntoView({ behavior: 'smooth', block: 'center' });
+          return;
+        }
+        corpo.documentos = docsCadastro;
+      }
+      const textoBotao = e.submitter.textContent;
+      if (tipo === 'motoboy') e.submitter.textContent = 'Enviando documentos…';
+      acao(e.submitter, async () => entrarCom(await api('/auth/registrar', { metodo: 'POST', corpo }))).finally(
+        () => (e.submitter.textContent = textoBotao)
+      );
+    });
+  </script>
+</body>
+</html>

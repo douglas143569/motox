@@ -1,0 +1,11 @@
+{
+  "name": "motox-app-cliente",
+  "private": true,
+  "description": "App MotoX (cliente) - gerado a partir de public/",
+  "dependencies": {
+    "@capacitor/core": "^8.5.3",
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/ios": "^8.5.3",
+    "@capacitor/app": "^8.1.2"
+  }
+}

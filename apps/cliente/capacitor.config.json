@@ -1,0 +1,9 @@
+{
+  "appId": "br.com.motox.cliente",
+  "appName": "MotoX",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "http",
+    "cleartext": true
+  }
+}
